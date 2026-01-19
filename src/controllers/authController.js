@@ -160,11 +160,12 @@ exports.loginVendor = async (req, res) => {
 
 const Otp = require('../models/Otp');
 const sendEmail = require('../utils/email');
+const sendSms = require('../utils/sms');
 
 // Send OTP
 exports.sendOtp = async (req, res) => {
     try {
-        const { email } = req.body;
+        const { email, phone } = req.body;
 
         // Check if vendor already exists
         let vendor = await Vendor.findOne({ email });
@@ -172,11 +173,17 @@ exports.sendOtp = async (req, res) => {
             return res.status(400).json({ msg: 'User already exists' });
         }
 
-        // Generate OTP
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        // Generate OTPs
+        const emailOtp = Math.floor(100000 + Math.random() * 900000).toString();
+        const phoneOtp = phone ? Math.floor(100000 + Math.random() * 900000).toString() : null;
 
         // Save OTP to DB
-        const newOtp = new Otp({ email, otp });
+        const newOtp = new Otp({
+            email,
+            phone,
+            emailOtp,
+            phoneOtp
+        });
         await newOtp.save();
 
         // Send Email
@@ -224,7 +231,7 @@ exports.sendOtp = async (req, res) => {
 
                                         <!-- OTP Box -->
                                         <div style="background-color: #f8fafc; border: 2px dashed ${themeColor}; border-radius: 12px; padding: 30px; margin: 0 auto 30px auto; max-width: 300px;">
-                                            <span style="font-family: 'Courier New', monospace; font-size: 36px; font-weight: 700; color: ${darkColor}; letter-spacing: 8px; display: block;">${otp}</span>
+                                            <span style="font-family: 'Courier New', monospace; font-size: 36px; font-weight: 700; color: ${darkColor}; letter-spacing: 8px; display: block;">${emailOtp}</span>
                                             <p style="margin: 10px 0 0 0; font-size: 12px; color: #94a3b8; font-weight: 500;">VALID FOR 5 MINUTES</p>
                                         </div>
                                         
@@ -254,11 +261,21 @@ exports.sendOtp = async (req, res) => {
 
         const emailSent = await sendEmail(email, subject, '', html);
 
-        if (!emailSent) {
-            return res.status(500).json({ msg: 'Failed to send OTP email' });
+        let smsSent = false;
+        if (phone && phoneOtp) {
+            const smsMessage = `Your Mehfil One verification code is: ${phoneOtp}. Valid for 5 minutes.`;
+            smsSent = await sendSms(phone, smsMessage);
         }
 
-        res.json({ msg: 'OTP sent successfully' });
+        if (!emailSent && !smsSent) {
+            return res.status(500).json({ msg: 'Failed to send OTP via Email or SMS' });
+        }
+
+        res.json({
+            msg: 'OTP sent successfully',
+            emailSent,
+            smsSent
+        });
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
@@ -270,13 +287,173 @@ exports.verifyOtp = async (req, res) => {
     try {
         const { email, otp } = req.body;
 
-        const otpRecord = await Otp.findOne({ email, otp });
+        // Find the most recent OTP record for this email
+        const otpRecord = await Otp.findOne({ email }).sort({ createdAt: -1 });
 
         if (!otpRecord) {
             return res.status(400).json({ msg: 'Invalid or Expired OTP' });
         }
 
+        let isVerified = false;
+
+        // Check if OTP matches either emailOtp or phoneOtp
+        if (otpRecord.emailOtp === otp) {
+            isVerified = true;
+        } else if (otpRecord.phoneOtp && otpRecord.phoneOtp === otp) {
+            isVerified = true;
+        }
+
+        if (!isVerified) {
+            return res.status(400).json({ msg: 'Invalid OTP' });
+        }
+
         res.json({ msg: 'OTP Verified Successfully', status: 'success' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
+// Send Email OTP
+exports.sendEmailOtp = async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        // Check if vendor already exists
+        let vendor = await Vendor.findOne({ email });
+        if (vendor) {
+            return res.status(400).json({ msg: 'User already exists' });
+        }
+
+        const emailOtp = Math.floor(100000 + Math.random() * 900000).toString();
+
+        const newOtp = new Otp({
+            email,
+            emailOtp
+        });
+        await newOtp.save();
+
+        const subject = 'Mehfil One - Verify Your Email';
+        const themeColor = '#fac371';
+        const darkColor = '#0f172a';
+        const lightBg = '#f8fafc';
+
+        const html = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>${subject}</title>
+            </head>
+            <body style="margin: 0; padding: 0; background-color: ${lightBg}; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+                <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                    <tr>
+                        <td align="center" style="padding: 40px 0;">
+                            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="600" style="background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); border: 1px solid #e2e8f0;">
+                                <!-- Header -->
+                                <tr>
+                                    <td style="background-color: ${darkColor}; padding: 35px 30px; text-align: center;">
+                                        <h1 style="color: ${themeColor}; margin: 0; font-size: 28px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase;">Mehfil One</h1>
+                                        <p style="color: #94a3b8; margin: 10px 0 0 0; font-size: 14px; letter-spacing: 0.5px;">EMAIL VERIFICATION</p>
+                                    </td>
+                                </tr>
+                                <!-- Content -->
+                                <tr>
+                                    <td style="padding: 40px 40px 30px 40px; text-align: center;">
+                                        <div style="margin-bottom: 30px;">
+                                            <h2 style="color: ${darkColor}; margin: 0 0 10px 0; font-size: 24px; font-weight: 700;">Verify Your Email Address</h2>
+                                            <p style="color: #64748b; font-size: 16px; line-height: 1.6; margin: 0;">Use the code below to complete your registration process.</p>
+                                        </div>
+                                        <div style="background-color: #f8fafc; border: 2px dashed ${themeColor}; border-radius: 12px; padding: 30px; margin: 0 auto 30px auto; max-width: 300px;">
+                                            <span style="font-family: 'Courier New', monospace; font-size: 36px; font-weight: 700; color: ${darkColor}; letter-spacing: 8px; display: block;">${emailOtp}</span>
+                                            <p style="margin: 10px 0 0 0; font-size: 12px; color: #94a3b8; font-weight: 500;">VALID FOR 5 MINUTES</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+            </body>
+            </html>
+        `;
+
+        const emailSent = await sendEmail(email, subject, '', html);
+        if (!emailSent) {
+            return res.status(500).json({ msg: 'Failed to send OTP email' });
+        }
+
+        res.json({ msg: 'Email OTP sent successfully' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
+// Send Phone OTP
+exports.sendPhoneOtp = async (req, res) => {
+    try {
+        const { email, phone } = req.body;
+
+        // Check if vendor already exists
+        let vendor = await Vendor.findOne({ email });
+        if (vendor) {
+            return res.status(400).json({ msg: 'User already exists' });
+        }
+
+        const phoneOtp = Math.floor(100000 + Math.random() * 900000).toString();
+
+        const newOtp = new Otp({
+            email,
+            phone,
+            phoneOtp
+        });
+        await newOtp.save();
+
+        const smsMessage = `Your Mehfil One verification code is: ${phoneOtp}. Valid for 5 minutes.`;
+        const smsSent = await sendSms(phone, smsMessage);
+
+        if (!smsSent) {
+            return res.status(500).json({ msg: 'Failed to send OTP SMS' });
+        }
+
+        res.json({ msg: 'Phone OTP sent successfully' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
+// Verify Email OTP
+exports.verifyEmailOtp = async (req, res) => {
+    try {
+        const { email, otp } = req.body;
+        const otpRecord = await Otp.findOne({ email, emailOtp: otp });
+
+        if (!otpRecord) {
+            return res.status(400).json({ msg: 'Invalid or Expired Email OTP' });
+        }
+
+        res.json({ msg: 'Email Verified Successfully', status: 'success' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
+// Verify Phone OTP
+exports.verifyPhoneOtp = async (req, res) => {
+    try {
+        const { email, otp } = req.body;
+        // Verify against phoneOtp. Note: We use email to find the record as it's the required field.
+        const otpRecord = await Otp.findOne({ email, phoneOtp: otp });
+
+        if (!otpRecord) {
+            return res.status(400).json({ msg: 'Invalid or Expired Phone OTP' });
+        }
+
+        res.json({ msg: 'Phone Verified Successfully', status: 'success' });
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');

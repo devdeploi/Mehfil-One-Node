@@ -5,9 +5,17 @@ const otpSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    otp: {
+    phone: {
         type: String,
-        required: true
+        required: false
+    },
+    emailOtp: {
+        type: String,
+        required: false
+    },
+    phoneOtp: {
+        type: String,
+        required: false
     },
     createdAt: {
         type: Date,
