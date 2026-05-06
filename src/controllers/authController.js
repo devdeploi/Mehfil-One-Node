@@ -175,10 +175,23 @@ exports.sendOtp = async (req, res) => {
             smsSent = await sendSms(phone, smsMessage);
         }
 
-        res.json({ msg: 'OTP sent successfully', emailSent, smsSent });
+        // Check if at least one delivery method succeeded
+        if (!emailSent && !smsSent) {
+            return res.status(500).json({ 
+                msg: 'Failed to deliver OTP via Email or SMS. Please check your contact details or try again later.',
+                emailSent,
+                smsSent
+            });
+        }
+
+        res.json({ 
+            msg: 'OTP sent successfully', 
+            emailSent, 
+            smsSent 
+        });
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
+        console.error('Error in sendOtp controller:', err);
+        res.status(500).json({ msg: 'Server error while processing OTP request' });
     }
 };
 
@@ -204,7 +217,7 @@ exports.verifyOtp = async (req, res) => {
         res.json({ msg: 'OTP Verified Successfully', status: 'success' });
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        res.status(500).json({ msg: 'Verification failed' });
     }
 };
 
@@ -212,7 +225,6 @@ exports.verifyOtp = async (req, res) => {
 exports.registerUser = async (req, res) => {
     try {
         const { fullName, email, phone, password, address, city } = req.body;
-        const proofDocument = req.file ? req.file.path.replace(/\\/g, "/") : null;
 
         let user = await User.findOne({ email });
         if (user) {
@@ -229,15 +241,14 @@ exports.registerUser = async (req, res) => {
             password: hashedPassword,
             address,
             city,
-            proofDocument,
-            status: 'Active' // Users are active by default for now
+            status: 'Active'
         });
 
         await user.save();
         res.status(201).json({ msg: 'User registered successfully', userId: user._id });
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        res.status(500).json({ msg: 'Registration failed' });
     }
 };
 
@@ -267,7 +278,7 @@ exports.loginUser = async (req, res) => {
         });
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        res.status(500).json({ msg: 'Login failed' });
     }
 };
 

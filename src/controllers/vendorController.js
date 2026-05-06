@@ -38,6 +38,7 @@ exports.getVendorById = async (req, res) => {
         if (!vendor) return res.status(404).json({ msg: 'Vendor not found' });
         res.json(vendor);
     } catch (err) {
+        console.error("Error in getVendorById:", err);
         if (err.kind === 'ObjectId') return res.status(404).json({ msg: 'Vendor not found' });
         res.status(500).json({ msg: 'Server Error' });
     }
@@ -46,17 +47,24 @@ exports.getVendorById = async (req, res) => {
 // Update vendor details
 exports.updateVendor = async (req, res) => {
     try {
-        const { fullName, phone, email } = req.body;
+        const { fullName, phone, email, businessName, gstNumber, businessAddress } = req.body;
         let profileImage = req.body.profileImage; // Keep existing if no new file
 
         if (req.file) {
             // Find the vendor to get the old image path
             const currentVendor = await Vendor.findById(req.params.id);
             if (currentVendor && currentVendor.profileImage) {
-                const oldImagePath = path.join(__dirname, '../../', currentVendor.profileImage);
-                // Check if file exists and delete it
-                if (fs.existsSync(oldImagePath)) {
-                    fs.unlinkSync(oldImagePath);
+                // Ensure we only try to delete local files, not external URLs
+                if (!currentVendor.profileImage.startsWith('http')) {
+                    const oldImagePath = path.join(__dirname, '../../', currentVendor.profileImage);
+                    // Check if file exists and delete it
+                    if (fs.existsSync(oldImagePath)) {
+                        try {
+                            fs.unlinkSync(oldImagePath);
+                        } catch (unlinkErr) {
+                            console.warn("Could not delete old profile image:", unlinkErr);
+                        }
+                    }
                 }
             }
 
@@ -64,14 +72,21 @@ exports.updateVendor = async (req, res) => {
             profileImage = req.file.path.replace(/\\/g, '/');
         }
 
+        const updateData = { fullName, phone, businessName, gstNumber, businessAddress, profileImage };
+        // Only update email if it was provided
+        if (email) updateData.email = email;
+
         const vendor = await Vendor.findByIdAndUpdate(
             req.params.id,
-            { fullName, phone, email, profileImage },
-            { new: true }
+            updateData,
+            { new: true, runValidators: true }
         ).select('-password');
+        
+        if (!vendor) return res.status(404).json({ msg: 'Vendor not found' });
         res.json(vendor);
     } catch (err) {
-        res.status(500).json({ msg: 'Server Error' });
+        console.error("Error in updateVendor:", err);
+        res.status(500).json({ msg: 'Server Error', error: err.message });
     }
 };
 
