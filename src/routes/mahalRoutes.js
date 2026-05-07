@@ -12,6 +12,7 @@ const uploadFields = upload.fields([
 ]);
 
 router.get('/', mahalController.getAllMahals);
+router.get('/:id', mahalController.getMahalById);
 router.post('/', uploadFields, mahalController.createMahal);
 router.put('/:id', uploadFields, mahalController.updateMahal);
 router.delete('/:id', mahalController.deleteMahal);

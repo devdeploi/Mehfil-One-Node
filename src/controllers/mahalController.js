@@ -1,7 +1,9 @@
+const Review = require('../models/Review');
 const Mahal = require('../models/Mahal');
 const Vendor = require('../models/Vendor');
 const path = require('path');
 const fs = require('fs');
+const mongoose = require('mongoose');
 
 // Helper to delete file
 const deleteFile = (filePath) => {
@@ -21,15 +23,37 @@ const normalizePath = (pathStr) => {
 exports.getAllMahals = async (req, res) => {
     try {
         const { vendorId } = req.query;
-        let query = {};
-        if (vendorId) query.vendorId = vendorId;
+        let matchQuery = {};
+        if (vendorId) matchQuery.vendorId = new mongoose.Types.ObjectId(vendorId);
 
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
 
-        const mahals = await Mahal.find(query).skip(skip).limit(limit).sort({ createdAt: -1 });
-        const total = await Mahal.countDocuments(query);
+        const pipeline = [
+            { $match: matchQuery },
+            {
+                $lookup: {
+                    from: 'reviews',
+                    localField: '_id',
+                    foreignField: 'mahalId',
+                    as: 'reviews'
+                }
+            },
+            {
+                $addFields: {
+                    averageRating: { $avg: '$reviews.rating' },
+                    reviewCount: { $size: '$reviews' }
+                }
+            },
+            { $sort: { createdAt: -1 } },
+            { $skip: skip },
+            { $limit: limit },
+            { $project: { reviews: 0 } } // Don't send full reviews array to list view
+        ];
+
+        const mahals = await Mahal.aggregate(pipeline);
+        const total = await Mahal.countDocuments(matchQuery);
 
         res.json({
             mahals,
@@ -39,6 +63,18 @@ exports.getAllMahals = async (req, res) => {
         });
     } catch (err) {
         console.error("Get All Mahals Error:", err);
+        res.status(500).json({ msg: 'Server Error' });
+    }
+};
+
+// Get single mahal by ID
+exports.getMahalById = async (req, res) => {
+    try {
+        const mahal = await Mahal.findById(req.params.id);
+        if (!mahal) return res.status(404).json({ msg: 'Mahal not found' });
+        res.json(mahal);
+    } catch (err) {
+        console.error("Get Mahal By ID Error:", err);
         res.status(500).json({ msg: 'Server Error' });
     }
 };
