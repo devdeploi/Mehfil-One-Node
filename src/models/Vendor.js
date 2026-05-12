@@ -12,6 +12,7 @@ const vendorSchema = new mongoose.Schema({
     businessName: { type: String },
     gstNumber: { type: String },
     businessAddress: { type: String },
+    upiId: { type: String, default: '' },
     proofDocument: { type: String },
     createdAt: { type: Date, default: Date.now }
 });

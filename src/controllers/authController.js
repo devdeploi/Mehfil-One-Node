@@ -8,7 +8,7 @@ const sendSms = require('../utils/sms');
 // Register Vendor
 exports.registerVendor = async (req, res) => {
     try {
-        const { fullName, email, phone, password, plan, businessName, gstNumber, businessAddress } = req.body;
+        const { fullName, email, phone, password, plan, businessName, gstNumber, businessAddress, upiId } = req.body;
         const proofDocument = req.file ? req.file.path.replace(/\\/g, "/") : null;
 
         // Check if user exists
@@ -32,6 +32,7 @@ exports.registerVendor = async (req, res) => {
             businessName,
             gstNumber,
             businessAddress,
+            upiId,
             proofDocument
         });
 
@@ -111,6 +112,7 @@ exports.loginVendor = async (req, res) => {
                 id: vendor._id,
                 name: vendor.fullName,
                 email: vendor.email,
+                phone: vendor.phone,
                 role: vendor.role,
                 plan: vendor.plan || 'Standard'
             }
@@ -177,17 +179,17 @@ exports.sendOtp = async (req, res) => {
 
         // Check if at least one delivery method succeeded
         if (!emailSent && !smsSent) {
-            return res.status(500).json({ 
+            return res.status(500).json({
                 msg: 'Failed to deliver OTP via Email or SMS. Please check your contact details or try again later.',
                 emailSent,
                 smsSent
             });
         }
 
-        res.json({ 
-            msg: 'OTP sent successfully', 
-            emailSent, 
-            smsSent 
+        res.json({
+            msg: 'OTP sent successfully',
+            emailSent,
+            smsSent
         });
     } catch (err) {
         console.error('Error in sendOtp controller:', err);
@@ -273,6 +275,7 @@ exports.loginUser = async (req, res) => {
                 id: user._id,
                 name: user.fullName,
                 email: user.email,
+                phone: user.phone,
                 role: user.role
             }
         });

@@ -70,7 +70,7 @@ exports.getAllMahals = async (req, res) => {
 // Get single mahal by ID
 exports.getMahalById = async (req, res) => {
     try {
-        const mahal = await Mahal.findById(req.params.id);
+        const mahal = await Mahal.findById(req.params.id).populate('vendorId', 'upiId fullName');
         if (!mahal) return res.status(404).json({ msg: 'Mahal not found' });
         res.json(mahal);
     } catch (err) {

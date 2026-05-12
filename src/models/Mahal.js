@@ -51,14 +51,25 @@ const mahalSchema = new mongoose.Schema({
     // 6. Facilities / Amenities
     facilities: {
         ac: { type: Boolean, default: false },
+        acPrice: { type: Number, default: 0 },
         generator: { type: Boolean, default: false },
+        generatorPrice: { type: Number, default: 0 },
         parking: { type: Boolean, default: false },
+        parkingPrice: { type: Number, default: 0 },
         lift: { type: Boolean, default: false },
+        liftPrice: { type: Number, default: 0 },
         drinkingWater: { type: Boolean, default: false },
+        drinkingWaterPrice: { type: Number, default: 0 },
         cleaning: { type: Boolean, default: false },
+        cleaningPrice: { type: Number, default: 0 },
         soundSystem: { type: Boolean, default: false },
+        soundSystemPrice: { type: Number, default: 0 },
         stage: { type: Boolean, default: false },
-        cctv: { type: Boolean, default: false }
+        stagePrice: { type: Number, default: 0 },
+        cctv: { type: Boolean, default: false },
+        cctvPrice: { type: Number, default: 0 },
+        rooms: { type: Boolean, default: false },
+        roomsPrice: { type: Number, default: 0 }
     },
     powerSupply: { type: String },
     restRooms: { type: Number },

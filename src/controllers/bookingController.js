@@ -49,9 +49,9 @@ exports.getBookings = async (req, res) => {
 
         let bookings;
         if (req.query.all === 'true') {
-            bookings = await Booking.find(query).sort({ date: 1 });
+            bookings = await Booking.find(query).populate('mahalId', 'mahalName mahalType').sort({ date: 1 });
         } else {
-            bookings = await Booking.find(query).sort({ date: 1 }); // Just return all for now to simplify calendar population
+            bookings = await Booking.find(query).populate('mahalId', 'mahalName mahalType').sort({ date: 1 }); // Just return all for now to simplify calendar population
         }
 
         // Transform or just return
@@ -127,6 +127,17 @@ exports.updateBooking = async (req, res) => {
         const booking = await Booking.findByIdAndUpdate(req.params.id, req.body, { new: true });
         res.json(booking);
     } catch (err) {
+        res.status(500).json({ msg: 'Server Error' });
+    }
+};
+
+// Delete Booking
+exports.deleteBooking = async (req, res) => {
+    try {
+        await Booking.findByIdAndDelete(req.params.id);
+        res.json({ msg: 'Booking removed' });
+    } catch (err) {
+        console.error(err);
         res.status(500).json({ msg: 'Server Error' });
     }
 };
