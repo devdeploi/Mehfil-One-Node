@@ -11,6 +11,9 @@ router.post('/login-user', authController.loginUser);
 router.post('/send-otp', authController.sendOtp);
 router.post('/verify-otp', authController.verifyOtp);
 
+router.post('/forgot-password', authController.forgotPassword);
+router.post('/reset-password', authController.resetPassword);
+
 // Separate OTP Routes
 router.post('/send-email-otp', authController.sendEmailOtp);
 router.post('/send-phone-otp', authController.sendPhoneOtp);

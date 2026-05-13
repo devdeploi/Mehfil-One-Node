@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const bookingSchema = new mongoose.Schema({
     mahalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Mahal', required: true },
     vendorId: { type: mongoose.Schema.Types.ObjectId, ref: 'Vendor', required: true },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // Optional: Link to User model
     date: { type: Date, required: true },
     endDate: { type: Date }, // Optional: for multi-day bookings
     isMultiDay: { type: Boolean, default: false },

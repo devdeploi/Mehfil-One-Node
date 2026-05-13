@@ -5,11 +5,13 @@ const mongoose = require('mongoose');
 // Get bookings
 exports.getBookings = async (req, res) => {
     try {
-        const { mahalId, date, month, year, vendorId } = req.query;
+        const { mahalId, date, month, year, vendorId, userId } = req.query;
         let query = {};
 
         if (mahalId) {
             query.mahalId = mahalId;
+        } else if (userId) {
+            query.userId = userId;
         } else if (vendorId) {
             // Support both direct vendorId (new schema) and mahalId lookup (old schema/backward compat)
             // Support both direct vendorId (new schema) and mahalId lookup (old schema/backward compat)
@@ -49,9 +51,9 @@ exports.getBookings = async (req, res) => {
 
         let bookings;
         if (req.query.all === 'true') {
-            bookings = await Booking.find(query).populate('mahalId', 'mahalName mahalType').sort({ date: 1 });
+            bookings = await Booking.find(query).populate('mahalId', 'mahalName mahalType coverImage').sort({ date: 1 });
         } else {
-            bookings = await Booking.find(query).populate('mahalId', 'mahalName mahalType').sort({ date: 1 }); // Just return all for now to simplify calendar population
+            bookings = await Booking.find(query).populate('mahalId', 'mahalName mahalType coverImage').sort({ date: 1 }); // Just return all for now to simplify calendar population
         }
 
         // Transform or just return

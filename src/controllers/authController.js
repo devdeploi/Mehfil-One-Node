@@ -301,3 +301,65 @@ exports.verifyEmailOtp = async (req, res) => {
 exports.verifyPhoneOtp = async (req, res) => {
     return exports.verifyOtp(req, res);
 };
+// Forgot Password - Send OTP
+exports.forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+        const user = await User.findOne({ email });
+        const vendor = await Vendor.findOne({ email });
+
+        if (!user && !vendor) {
+            return res.status(404).json({ msg: 'No account found with this email' });
+        }
+
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const newOtp = new Otp({ email, emailOtp: otp });
+        await newOtp.save();
+
+        const subject = 'Password Reset - Mehfil One';
+        const html = `
+            <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px; max-width: 600px; margin: auto;">
+                <h2 style="color: #0f172a; text-align: center;">Reset Your Password</h2>
+                <p>Hello,</p>
+                <p>You requested to reset your password. Use the following verification code to proceed:</p>
+                <div style="font-size: 32px; font-weight: bold; text-align: center; padding: 20px; background: #f8fafc; border: 2px dashed #fac371; margin: 20px 0;">
+                    ${otp}
+                </div>
+                <p style="color: #64748b; font-size: 14px;">This code is valid for 10 minutes. If you didn't request this, you can safely ignore this email.</p>
+            </div>
+        `;
+
+        await sendEmail(email, subject, '', html);
+        res.json({ msg: 'OTP sent to your email' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ msg: 'Server error' });
+    }
+};
+
+// Reset Password
+exports.resetPassword = async (req, res) => {
+    try {
+        const { email, otp, newPassword } = req.body;
+
+        const otpRecord = await Otp.findOne({ email }).sort({ createdAt: -1 });
+        if (!otpRecord || otpRecord.emailOtp !== otp) {
+            return res.status(400).json({ msg: 'Invalid or Expired OTP' });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+        const user = await User.findOneAndUpdate({ email }, { password: hashedPassword });
+        const vendor = await Vendor.findOneAndUpdate({ email }, { password: hashedPassword });
+
+        if (!user && !vendor) {
+            return res.status(404).json({ msg: 'User not found' });
+        }
+
+        res.json({ msg: 'Password reset successful' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ msg: 'Server error' });
+    }
+};
