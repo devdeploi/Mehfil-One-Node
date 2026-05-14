@@ -19,12 +19,38 @@ const normalizePath = (pathStr) => {
     return pathStr.replace(/\\/g, '/');
 };
 
-// Get all mahals
+// Get all mahals with filters and pagination
 exports.getAllMahals = async (req, res) => {
     try {
-        const { vendorId } = req.query;
+        const { 
+            vendorId, 
+            mahalName, 
+            city, 
+            district, 
+            minPrice, 
+            maxPrice, 
+            minRating, 
+            isAC 
+        } = req.query;
+
         let matchQuery = {};
+
         if (vendorId) matchQuery.vendorId = new mongoose.Types.ObjectId(vendorId);
+        if (mahalName) matchQuery.mahalName = { $regex: mahalName, $options: 'i' };
+        if (city) matchQuery.city = { $regex: city, $options: 'i' };
+        if (district) matchQuery.district = { $regex: district, $options: 'i' };
+
+        // Price Filter (using fullDayPrice)
+        if (minPrice || maxPrice) {
+            matchQuery.fullDayPrice = {};
+            if (minPrice) matchQuery.fullDayPrice.$gte = parseInt(minPrice);
+            if (maxPrice) matchQuery.fullDayPrice.$lte = parseInt(maxPrice);
+        }
+
+        // AC Filter
+        if (isAC) {
+            matchQuery['facilities.ac'] = isAC === 'true';
+        }
 
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
@@ -42,18 +68,53 @@ exports.getAllMahals = async (req, res) => {
             },
             {
                 $addFields: {
-                    averageRating: { $avg: '$reviews.rating' },
+                    averageRating: { $ifNull: [{ $avg: '$reviews.rating' }, 0] },
                     reviewCount: { $size: '$reviews' }
                 }
-            },
+            }
+        ];
+
+        // Rating Filter (Must happen after addFields)
+        if (minRating) {
+            pipeline.push({ $match: { averageRating: { $gte: parseFloat(minRating) } } });
+        }
+
+        // Sort, Skip, Limit
+        pipeline.push(
             { $sort: { createdAt: -1 } },
             { $skip: skip },
             { $limit: limit },
-            { $project: { reviews: 0 } } // Don't send full reviews array to list view
-        ];
+            { $project: { reviews: 0 } }
+        );
 
         const mahals = await Mahal.aggregate(pipeline);
-        const total = await Mahal.countDocuments(matchQuery);
+        
+        // For total count, we need to account for the rating filter if it exists
+        let total;
+        if (minRating) {
+            const countPipeline = [
+                { $match: matchQuery },
+                {
+                    $lookup: {
+                        from: 'reviews',
+                        localField: '_id',
+                        foreignField: 'mahalId',
+                        as: 'reviews'
+                    }
+                },
+                {
+                    $addFields: {
+                        averageRating: { $ifNull: [{ $avg: '$reviews.rating' }, 0] }
+                    }
+                },
+                { $match: { averageRating: { $gte: parseFloat(minRating) } } },
+                { $count: 'total' }
+            ];
+            const countResult = await Mahal.aggregate(countPipeline);
+            total = countResult.length > 0 ? countResult[0].total : 0;
+        } else {
+            total = await Mahal.countDocuments(matchQuery);
+        }
 
         res.json({
             mahals,

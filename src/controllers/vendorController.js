@@ -7,7 +7,7 @@ exports.getAllVendors = async (req, res) => {
     try {
         // Pagination
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 10;
+        const limit = parseInt(req.query.limit) || 50;
         const skip = (page - 1) * limit;
 
         // Exclude password. Include docs where role is 'vendor' or missing.

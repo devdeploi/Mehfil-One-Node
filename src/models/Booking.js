@@ -11,6 +11,7 @@ const bookingSchema = new mongoose.Schema({
     endShift: { type: String, enum: ['Morning', 'Evening', 'Full Day'] }, // Optional: end shift for multi-day
     customerName: { type: String, required: true },
     customerPhone: { type: String },
+    customerEmail: { type: String },
     paymentMode: { type: String, default: 'Offline - Cash' },
     paymentStatus: { type: String, enum: ['Pending', 'Paid', 'Partial'], default: 'Pending' },
     bookingStatus: { type: String, enum: ['Confirmed', 'Pending', 'Cancelled'], default: 'Confirmed' },
