@@ -103,7 +103,7 @@ exports.updateVendorStatus = async (req, res) => {
             let message = '';
             let color = '';
             let btnText = '';
-            let btnLink = `${process.env.CLIENT_URL || 'http://localhost:5173'}/superadmin/login`;
+            let btnLink = `${process.env.CLIENT_URL || 'http://localhost:5173'}/vendor/login`;
 
             if (status === 'Active') {
                 subject = 'Account Approved - Welcome to Mehfil One!';

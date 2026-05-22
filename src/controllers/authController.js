@@ -1,6 +1,7 @@
 const Vendor = require('../models/Vendor');
 const User = require('../models/User');
 const Otp = require('../models/Otp');
+const Payment = require('../models/Payment');
 const bcrypt = require('bcryptjs');
 const sendEmail = require('../utils/email');
 const sendSms = require('../utils/sms');
@@ -8,7 +9,7 @@ const sendSms = require('../utils/sms');
 // Register Vendor
 exports.registerVendor = async (req, res) => {
     try {
-        const { fullName, email, phone, password, plan, businessName, gstNumber, businessAddress, upiId } = req.body;
+        const { fullName, email, phone, password, plan, businessName, gstNumber, businessAddress, upiId, paymentId, orderId } = req.body;
         const proofDocument = req.file ? req.file.path.replace(/\\/g, "/") : null;
 
         // Check if user exists
@@ -37,6 +38,23 @@ exports.registerVendor = async (req, res) => {
         });
 
         await vendor.save();
+
+        // Save Payment record if payment details exist
+        if (paymentId && orderId) {
+            let amount = 9999;
+            if (plan === 'Premium') amount = 24999;
+
+            const payment = new Payment({
+                vendorId: vendor._id,
+                amount,
+                paymentId,
+                orderId,
+                plan: plan || 'Standard',
+                status: 'Completed',
+                method: 'Razorpay'
+            });
+            await payment.save();
+        }
 
         // Send Registration Success Email
         const subject = 'Registration Successful - Mehfil One';

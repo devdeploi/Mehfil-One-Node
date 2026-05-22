@@ -27,7 +27,11 @@ const createOrder = async (req, res) => {
         res.json(order);
     } catch (error) {
         console.error('Error creating order:', error);
-        res.status(500).json({ message: 'Something went wrong', error: error.message });
+        const errorDescription = error.description || error.error?.description || error.message;
+        res.status(500).json({ 
+            message: 'Something went wrong while creating payment order', 
+            error: errorDescription 
+        });
     }
 };
 
@@ -52,7 +56,11 @@ const verifyPayment = async (req, res) => {
         }
     } catch (error) {
         console.error('Error verifying payment:', error);
-        res.status(500).json({ message: 'Internal Server Error', error: error.message });
+        const errorDescription = error.description || error.error?.description || error.message;
+        res.status(500).json({ 
+            message: 'Internal Server Error during verification', 
+            error: errorDescription 
+        });
     }
 };
 
