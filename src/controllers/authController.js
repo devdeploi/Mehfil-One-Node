@@ -22,6 +22,10 @@ exports.registerVendor = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
+        const startDate = new Date();
+        const expiryDate = new Date();
+        expiryDate.setFullYear(startDate.getFullYear() + 1);
+
         // Create new vendor
         vendor = new Vendor({
             fullName,
@@ -34,7 +38,9 @@ exports.registerVendor = async (req, res) => {
             gstNumber,
             businessAddress,
             upiId,
-            proofDocument
+            proofDocument,
+            planStartDate: startDate,
+            planExpiryDate: expiryDate
         });
 
         await vendor.save();
@@ -124,6 +130,9 @@ exports.loginVendor = async (req, res) => {
         if (vendor.role === 'vendor' && vendor.status !== 'Active') {
             return res.status(403).json({ msg: 'Your account is currently pending administrative approval.' });
         }
+
+        const isPlanExpired = vendor.planExpiryDate ? new Date() > new Date(vendor.planExpiryDate) : false;
+
         res.json({
             msg: 'Login successful',
             vendor: {
@@ -132,7 +141,9 @@ exports.loginVendor = async (req, res) => {
                 email: vendor.email,
                 phone: vendor.phone,
                 role: vendor.role,
-                plan: vendor.plan || 'Standard'
+                plan: vendor.plan || 'Standard',
+                isPlanExpired: isPlanExpired,
+                planExpiryDate: vendor.planExpiryDate
             }
         });
     } catch (err) {

@@ -35,7 +35,44 @@ exports.getAllMahals = async (req, res) => {
 
         let matchQuery = {};
 
-        if (vendorId) matchQuery.vendorId = new mongoose.Types.ObjectId(vendorId);
+        // Exclude suspended vendors (grace period of 7 days after expiry)
+        // A vendor is suspended if:
+        // 1. They have a planExpiryDate set and it's more than 7 days in the past, OR
+        // 2. They have NO planExpiryDate but their createdAt is more than 1 year + 7 days ago (legacy vendors)
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+        const oneYearAndSevenDaysAgo = new Date();
+        oneYearAndSevenDaysAgo.setFullYear(oneYearAndSevenDaysAgo.getFullYear() - 1);
+        oneYearAndSevenDaysAgo.setDate(oneYearAndSevenDaysAgo.getDate() - 7);
+
+        const suspendedVendors = await Vendor.find({
+            $or: [
+                // Has explicit expiry date that's past the grace period
+                { planExpiryDate: { $lt: sevenDaysAgo } },
+                // Legacy vendor: no planExpiryDate but account is older than 1 year + 7 days
+                { planExpiryDate: { $exists: false }, createdAt: { $lt: oneYearAndSevenDaysAgo } },
+                { planExpiryDate: null, createdAt: { $lt: oneYearAndSevenDaysAgo } }
+            ]
+        }).select('_id');
+        const suspendedVendorIds = suspendedVendors.map(v => v._id);
+
+        if (vendorId) {
+            if (mongoose.Types.ObjectId.isValid(vendorId)) {
+                if (suspendedVendorIds.some(id => id.toString() === vendorId)) {
+                    // The requested vendor is suspended, return empty
+                    return res.json({ mahals: [], currentPage: 1, totalPages: 0, totalMahals: 0 });
+                }
+                matchQuery.vendorId = new mongoose.Types.ObjectId(vendorId);
+            } else {
+                return res.json({ mahals: [], currentPage: 1, totalPages: 0, totalMahals: 0 });
+            }
+        } else {
+            if (suspendedVendorIds.length > 0) {
+                matchQuery.vendorId = { $nin: suspendedVendorIds };
+            }
+        }
+
         if (mahalName) matchQuery.mahalName = { $regex: mahalName, $options: 'i' };
         if (city) matchQuery.city = { $regex: city, $options: 'i' };
         if (district) matchQuery.district = { $regex: district, $options: 'i' };
@@ -55,6 +92,21 @@ exports.getAllMahals = async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
+
+        // If we don't need rating filters, use standard find() which is faster and avoids aggregation issues
+        if (!minRating && req.query.needsRating !== 'true') {
+            const mahals = await Mahal.find(matchQuery)
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit);
+            const total = await Mahal.countDocuments(matchQuery);
+            return res.json({
+                mahals,
+                currentPage: page,
+                totalPages: Math.ceil(total / limit),
+                totalMahals: total
+            });
+        }
 
         const pipeline = [
             { $match: matchQuery },
@@ -89,7 +141,6 @@ exports.getAllMahals = async (req, res) => {
 
         const mahals = await Mahal.aggregate(pipeline);
         
-        // For total count, we need to account for the rating filter if it exists
         let total;
         if (minRating) {
             const countPipeline = [
@@ -143,6 +194,12 @@ exports.getMahalById = async (req, res) => {
 // Create a Mahal
 exports.createMahal = async (req, res) => {
     try {
+        // Sanitize req.body to handle "null" and "undefined" strings from FormData
+        for (const key in req.body) {
+            if (req.body[key] === 'null') req.body[key] = null;
+            else if (req.body[key] === 'undefined') req.body[key] = undefined;
+        }
+
         console.log("Create Mahal Body:", req.body);
         console.log("Create Mahal Files:", req.files);
 
@@ -294,6 +351,8 @@ exports.createMahal = async (req, res) => {
             extraHourPrice: req.body.extraHourPrice,
             advanceAmount: req.body.advanceAmount,
             refundPolicy: req.body.refundPolicy,
+            discountMin: req.body.discountMin,
+            discountMax: req.body.discountMax,
 
             availableDays: req.body.availableDays,
             morningTimeFrom: req.body.morningTimeFrom,
@@ -331,6 +390,12 @@ exports.createMahal = async (req, res) => {
 // Update a Mahal
 exports.updateMahal = async (req, res) => {
     try {
+        // Sanitize req.body to handle "null" and "undefined" strings from FormData
+        for (const key in req.body) {
+            if (req.body[key] === 'null') req.body[key] = null;
+            else if (req.body[key] === 'undefined') req.body[key] = undefined;
+        }
+
         // Similar logic to create, but finding by ID first
         // For brevity, using FindByIdAndUpdate directly might overwrite complex fields if not careful
         // Best to fetch, merge, and save.

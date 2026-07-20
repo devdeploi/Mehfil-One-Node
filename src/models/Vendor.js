@@ -14,7 +14,8 @@ const vendorSchema = new mongoose.Schema({
     businessAddress: { type: String },
     upiId: { type: String, default: '' },
     proofDocument: { type: String },
-    createdAt: { type: Date, default: Date.now }
-});
+    planStartDate: { type: Date },
+    planExpiryDate: { type: Date }
+}, { timestamps: true });
 
 module.exports = mongoose.model('Vendor', vendorSchema);

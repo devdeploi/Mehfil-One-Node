@@ -1,4 +1,5 @@
 const Vendor = require('../models/Vendor');
+const Payment = require('../models/Payment');
 const fs = require('fs');
 const path = require('path');
 
@@ -47,7 +48,7 @@ exports.getVendorById = async (req, res) => {
 // Update vendor details
 exports.updateVendor = async (req, res) => {
     try {
-        const { fullName, phone, email, businessName, gstNumber, businessAddress } = req.body;
+        const { fullName, phone, email, businessName, gstNumber, businessAddress, upiId } = req.body;
         let profileImage = req.body.profileImage; // Keep existing if no new file
 
         if (req.file) {
@@ -72,7 +73,7 @@ exports.updateVendor = async (req, res) => {
             profileImage = req.file.path.replace(/\\/g, '/');
         }
 
-        const updateData = { fullName, phone, businessName, gstNumber, businessAddress, profileImage };
+        const updateData = { fullName, phone, businessName, gstNumber, businessAddress, upiId, profileImage };
         // Only update email if it was provided
         if (email) updateData.email = email;
 
@@ -220,6 +221,88 @@ exports.deleteVendor = async (req, res) => {
         await Vendor.findByIdAndDelete(req.params.id);
         res.json({ msg: 'Vendor removed' });
     } catch (err) {
+        res.status(500).json({ msg: 'Server Error' });
+    }
+};
+
+// Upgrade vendor plan
+exports.upgradeVendorPlan = async (req, res) => {
+    try {
+        const { paymentId, orderId, amount } = req.body;
+        const startDate = new Date();
+        const expiryDate = new Date();
+        expiryDate.setFullYear(startDate.getFullYear() + 1);
+
+        const vendor = await Vendor.findByIdAndUpdate(req.params.id, { 
+            plan: 'Premium',
+            planStartDate: startDate,
+            planExpiryDate: expiryDate
+        }, { new: true });
+        if (!vendor) return res.status(404).json({ msg: 'Vendor not found' });
+        
+        if (paymentId && orderId) {
+            const payment = new Payment({
+                vendorId: vendor._id,
+                amount: amount || 9999,
+                paymentId,
+                orderId,
+                plan: 'Premium',
+                status: 'Completed',
+                method: 'Razorpay'
+            });
+            await payment.save();
+        }
+
+        res.json({ msg: 'Vendor upgraded to Premium', vendor });
+    } catch (err) {
+        console.error("Error upgrading vendor plan:", err);
+        res.status(500).json({ msg: 'Server Error' });
+    }
+};
+
+// Downgrade vendor plan
+exports.downgradeVendorPlan = async (req, res) => {
+    try {
+        const vendor = await Vendor.findByIdAndUpdate(req.params.id, { plan: 'Standard' }, { new: true });
+        if (!vendor) return res.status(404).json({ msg: 'Vendor not found' });
+        res.json(vendor);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ msg: 'Server Error' });
+    }
+};
+
+// Renew vendor plan
+exports.renewVendorPlan = async (req, res) => {
+    try {
+        const { paymentId, orderId, amount, planName } = req.body;
+        const startDate = new Date();
+        const expiryDate = new Date();
+        expiryDate.setFullYear(startDate.getFullYear() + 1);
+
+        const vendor = await Vendor.findByIdAndUpdate(req.params.id, { 
+            plan: planName || 'Standard',
+            planStartDate: startDate,
+            planExpiryDate: expiryDate
+        }, { new: true });
+        if (!vendor) return res.status(404).json({ msg: 'Vendor not found' });
+        
+        if (paymentId && orderId) {
+            const payment = new Payment({
+                vendorId: vendor._id,
+                amount: amount || 9999,
+                paymentId,
+                orderId,
+                plan: planName || 'Standard',
+                status: 'Completed',
+                method: 'Razorpay'
+            });
+            await payment.save();
+        }
+
+        res.json(vendor);
+    } catch (err) {
+        console.error(err);
         res.status(500).json({ msg: 'Server Error' });
     }
 };

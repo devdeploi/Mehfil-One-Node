@@ -9,5 +9,6 @@ router.use('/payment', require('./paymentRoutes'));
 router.use('/users', require('./userRoutes'));
 router.use('/superadmin', require('./adminRoutes'));
 router.use('/reviews', require('./reviewRoutes'));
+router.use('/messages', require('./messageRoutes'));
 
 module.exports = router;

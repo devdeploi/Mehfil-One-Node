@@ -21,6 +21,9 @@ router.put('/:id', (req, res, next) => {
     });
 }, vendorController.updateVendor);
 router.put('/:id/status', vendorController.updateVendorStatus);
+router.put('/:id/upgrade', vendorController.upgradeVendorPlan);
+router.put('/:id/downgrade', vendorController.downgradeVendorPlan);
+router.put('/:id/renew', vendorController.renewVendorPlan);
 router.delete('/:id', vendorController.deleteVendor);
 
 module.exports = router;

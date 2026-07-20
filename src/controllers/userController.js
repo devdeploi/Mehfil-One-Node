@@ -30,7 +30,9 @@ exports.getAllUsers = async (req, res) => {
 // Get single user by ID
 exports.getUserById = async (req, res) => {
     try {
-        const user = await User.findById(req.params.id).select('-password');
+        const user = await User.findById(req.params.id)
+            .select('-password')
+            .populate('wishlist', 'mahalName coverImage city district fullDayPrice morningPrice seatingCapacity averageRating reviewCount');
         if (!user) return res.status(404).json({ msg: 'User not found' });
         res.json(user);
     } catch (err) {
@@ -70,6 +72,31 @@ exports.deleteUser = async (req, res) => {
         const user = await User.findByIdAndDelete(req.params.id);
         if (!user) return res.status(404).json({ msg: 'User not found' });
         res.json({ msg: 'User deleted successfully' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
+// Toggle Wishlist
+exports.toggleWishlist = async (req, res) => {
+    try {
+        const { mahalId } = req.body;
+        const user = await User.findById(req.params.id);
+        
+        if (!user) return res.status(404).json({ msg: 'User not found' });
+        
+        const index = user.wishlist.indexOf(mahalId);
+        if (index > -1) {
+            // Remove from wishlist
+            user.wishlist.splice(index, 1);
+        } else {
+            // Add to wishlist
+            user.wishlist.push(mahalId);
+        }
+        
+        await user.save();
+        res.json(user.wishlist);
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');

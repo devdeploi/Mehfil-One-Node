@@ -11,6 +11,7 @@ const userSchema = new mongoose.Schema({
     profileImage: { type: String, default: null },
     role: { type: String, default: 'user' },
     status: { type: String, enum: ['Active', 'Inactive', 'Pending'], default: 'Active' },
+    wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Mahal' }],
     createdAt: { type: Date, default: Date.now }
 });
 
