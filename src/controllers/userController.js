@@ -86,7 +86,7 @@ exports.toggleWishlist = async (req, res) => {
         
         if (!user) return res.status(404).json({ msg: 'User not found' });
         
-        const index = user.wishlist.indexOf(mahalId);
+        const index = user.wishlist.findIndex(id => id.toString() === mahalId.toString());
         if (index > -1) {
             // Remove from wishlist
             user.wishlist.splice(index, 1);
