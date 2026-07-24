@@ -15,7 +15,7 @@ const sendEmail = async (to, subject, text, html) => {
         console.log(`Attempting to send email to ${to} using host: ${process.env.EMAIL_HOST || 'smtp.gmail.com'} and user: ${process.env.EMAIL_USER}`);
 
         await transporter.sendMail({
-            from: process.env.EMAIL_USER,
+            from: `"Mehfil One Support" <${process.env.EMAIL_USER}>`,
             to,
             subject,
             text,

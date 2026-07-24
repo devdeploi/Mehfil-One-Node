@@ -1,4 +1,6 @@
 const User = require('../models/User');
+const Booking = require('../models/Booking');
+const Review = require('../models/Review');
 
 // Get all users with pagination
 exports.getAllUsers = async (req, res) => {
@@ -69,7 +71,15 @@ exports.updateUser = async (req, res) => {
 // Delete user
 exports.deleteUser = async (req, res) => {
     try {
-        const user = await User.findByIdAndDelete(req.params.id);
+        const userId = req.params.id;
+        
+        // Check if user is involved in other sections
+        const bookingCount = await Booking.countDocuments({ userId });
+        if (bookingCount > 0) {
+            return res.status(400).json({ msg: 'Cannot delete user because they have existing bookings.' });
+        }
+
+        const user = await User.findByIdAndDelete(userId);
         if (!user) return res.status(404).json({ msg: 'User not found' });
         res.json({ msg: 'User deleted successfully' });
     } catch (err) {

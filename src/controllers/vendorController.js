@@ -146,7 +146,7 @@ ${status === 'Active' ? '<div style="margin-top:15px;font-size:48px;">🎉</div>
 </td></tr>
 <tr><td style="padding:40px 40px 30px 40px;">
 <h2 style="color:${darkColor};margin-top:0;font-size:24px;font-weight:700;">Hello ${vendor.fullName},</h2>
-<p style="color:#475569;font-size:16px;line-height:1.8;margin-bottom:25px;">${message}</p>
+<div style="color:#475569;font-size:16px;line-height:1.8;margin-bottom:25px;">${message}</div>
 <div style="text-align:center;margin:40px 0;">
 <a href="${btnLink}" style="background-color:${themeColor};color:${darkColor};display:inline-block;padding:16px 32px;border-radius:50px;text-decoration:none;font-weight:700;font-size:16px;text-transform:uppercase;letter-spacing:0.5px;">${btnText}</a>
 </div>
