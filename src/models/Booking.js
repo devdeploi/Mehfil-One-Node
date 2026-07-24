@@ -20,6 +20,7 @@ const bookingSchema = new mongoose.Schema({
     guests: { type: Number }, // Guest count
     dayShifts: { type: Map, of: String }, // Map of 'YYYY-MM-DD' to 'Shift' for multi-day
     advancePaid: { type: Number, default: 0 },
+    balancePaid: { type: Number, default: 0 },
     isVerified: { type: Boolean, default: false },
     price: { type: Number }, // Base Price
     extraFacilities: {

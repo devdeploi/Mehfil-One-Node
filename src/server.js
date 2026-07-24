@@ -29,16 +29,6 @@ const PORT = process.env.PORT || 5000;
 const http = require('http');
 const server = http.createServer(app);
 
-// Temporary hook to install socket.io if missing
-try {
-    require.resolve('socket.io');
-} catch (e) {
-    console.log("socket.io not found, installing now...");
-    const cp = require('child_process');
-    cp.execSync('npm install socket.io', { stdio: 'inherit', cwd: "i:\\Product's\\Booking\\Booking_server" });
-    console.log("Finished installing socket.io");
-}
-
 // Initialize Socket.io
 const { Server } = require("socket.io");
 const io = new Server(server, {

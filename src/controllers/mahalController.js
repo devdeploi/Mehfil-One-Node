@@ -1,6 +1,7 @@
 const Review = require('../models/Review');
 const Mahal = require('../models/Mahal');
 const Vendor = require('../models/Vendor');
+const Booking = require('../models/Booking');
 const path = require('path');
 const fs = require('fs');
 const mongoose = require('mongoose');
@@ -519,6 +520,12 @@ exports.deleteMahal = async (req, res) => {
     try {
         const mahal = await Mahal.findById(req.params.id);
         if (!mahal) return res.status(404).json({ msg: 'Mahal not found' });
+
+        // Check for existing bookings
+        const bookingCount = await Booking.countDocuments({ mahalId: req.params.id });
+        if (bookingCount > 0) {
+            return res.status(400).json({ msg: 'Cannot delete this mahal because it has active reservations.' });
+        }
 
         // Delete all associated files
         if (mahal.coverImage) deleteFile(mahal.coverImage);

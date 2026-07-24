@@ -9,11 +9,14 @@ const sendSms = require('../utils/sms');
 // Register Vendor
 exports.registerVendor = async (req, res) => {
     try {
-        const { fullName, email, phone, password, plan, businessName, gstNumber, businessAddress, upiId, paymentId, orderId } = req.body;
+        let { fullName, email, phone, password, plan, billingCycle, amount: requestAmount, businessName, gstNumber, businessAddress, upiId, paymentId, orderId } = req.body;
+        if (email) email = email.trim().toLowerCase();
+        
         const proofDocument = req.file ? req.file.path.replace(/\\/g, "/") : null;
 
         // Check if user exists
-        let vendor = await Vendor.findOne({ email });
+        const emailRegex = new RegExp(`^${email}$`, 'i');
+        let vendor = await Vendor.findOne({ email: emailRegex });
         if (vendor) {
             return res.status(400).json({ msg: 'User already exists' });
         }
@@ -24,7 +27,12 @@ exports.registerVendor = async (req, res) => {
 
         const startDate = new Date();
         const expiryDate = new Date();
-        expiryDate.setFullYear(startDate.getFullYear() + 1);
+        
+        if (billingCycle === 'monthly') {
+            expiryDate.setMonth(startDate.getMonth() + 1);
+        } else {
+            expiryDate.setFullYear(startDate.getFullYear() + 1);
+        }
 
         // Create new vendor
         vendor = new Vendor({
@@ -47,8 +55,7 @@ exports.registerVendor = async (req, res) => {
 
         // Save Payment record if payment details exist
         if (paymentId && orderId) {
-            let amount = 9999;
-            if (plan === 'Premium') amount = 24999;
+            let amount = requestAmount ? Number(requestAmount) : (plan === 'Premium' ? 24999 : 9999);
 
             const payment = new Payment({
                 vendorId: vendor._id,
@@ -108,6 +115,39 @@ exports.registerVendor = async (req, res) => {
         `;
 
         await sendEmail(email, subject, '', html);
+        
+        // Send Notification to Superadmin
+        const adminEmail = process.env.ADMIN_EMAIL || 'admin@mehfilone.com';
+        const adminSubject = 'New Vendor Registration - Mehfil One';
+        const adminHtml = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <title>${adminSubject}</title>
+            </head>
+            <body style="background-color: ${lightBg}; font-family: sans-serif;">
+                <div style="max-width: 600px; margin: 20px auto; background: #fff; border-radius: 10px; overflow: hidden; border: 1px solid #eee;">
+                    <div style="background: ${darkColor}; padding: 20px; text-align: center;">
+                        <h1 style="color: ${themeColor}; margin: 0;">Mehfil One Admin</h1>
+                    </div>
+                    <div style="padding: 40px;">
+                        <h2 style="color: #166534; margin-top: 0;">New Vendor Registration Pending Approval</h2>
+                        <p style="color: #475569; font-size: 16px;">A new vendor has completed the registration process.</p>
+                        <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+                            <tr><td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Name:</strong></td><td style="padding: 8px 0; border-bottom: 1px solid #eee;">${fullName}</td></tr>
+                            <tr><td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Business:</strong></td><td style="padding: 8px 0; border-bottom: 1px solid #eee;">${businessName}</td></tr>
+                            <tr><td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Email:</strong></td><td style="padding: 8px 0; border-bottom: 1px solid #eee;">${email}</td></tr>
+                            <tr><td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Phone:</strong></td><td style="padding: 8px 0; border-bottom: 1px solid #eee;">${phone}</td></tr>
+                            <tr><td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Plan:</strong></td><td style="padding: 8px 0; border-bottom: 1px solid #eee;">${plan || 'Standard'}</td></tr>
+                        </table>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `;
+        await sendEmail(adminEmail, adminSubject, '', adminHtml);
+
         res.status(201).json({ msg: 'Vendor registered successfully', vendorId: vendor._id });
     } catch (err) {
         console.error(err.message);
@@ -118,8 +158,11 @@ exports.registerVendor = async (req, res) => {
 // Login Vendor
 exports.loginVendor = async (req, res) => {
     try {
-        const { email, password } = req.body;
-        const vendor = await Vendor.findOne({ email });
+        let { email, password } = req.body;
+        if (email) email = email.trim().toLowerCase();
+        
+        const emailRegex = new RegExp(`^${email}$`, 'i');
+        const vendor = await Vendor.findOne({ email: emailRegex });
         if (!vendor) {
             return res.status(400).json({ msg: 'Invalid Credentials' });
         }
@@ -155,11 +198,13 @@ exports.loginVendor = async (req, res) => {
 // Send OTP (Unified)
 exports.sendOtp = async (req, res) => {
     try {
-        const { email, phone } = req.body;
+        let { email, phone } = req.body;
+        if (email) email = email.trim().toLowerCase();
 
         // Check if user already exists in Vendor or User collection
-        let existingVendor = await Vendor.findOne({ email });
-        let existingUser = await User.findOne({ email });
+        const emailRegex = new RegExp(`^${email}$`, 'i');
+        let existingVendor = await Vendor.findOne({ email: emailRegex });
+        let existingUser = await User.findOne({ email: emailRegex });
         if (existingVendor || existingUser) {
             return res.status(400).json({ msg: 'User already exists' });
         }
@@ -229,8 +274,11 @@ exports.sendOtp = async (req, res) => {
 // Verify OTP (Unified)
 exports.verifyOtp = async (req, res) => {
     try {
-        const { email, otp } = req.body;
-        const otpRecord = await Otp.findOne({ email }).sort({ createdAt: -1 });
+        let { email, otp } = req.body;
+        if (email) email = email.trim().toLowerCase();
+        
+        const emailRegex = new RegExp(`^${email}$`, 'i');
+        const otpRecord = await Otp.findOne({ email: emailRegex }).sort({ createdAt: -1 });
 
         if (!otpRecord) {
             return res.status(400).json({ msg: 'Invalid or Expired OTP' });
@@ -255,9 +303,11 @@ exports.verifyOtp = async (req, res) => {
 // Register User
 exports.registerUser = async (req, res) => {
     try {
-        const { fullName, email, phone, password, address, city } = req.body;
+        let { fullName, email, phone, password, address, city } = req.body;
+        if (email) email = email.trim().toLowerCase();
 
-        let user = await User.findOne({ email });
+        const emailRegex = new RegExp(`^${email}$`, 'i');
+        let user = await User.findOne({ email: emailRegex });
         if (user) {
             return res.status(400).json({ msg: 'User already exists' });
         }
@@ -286,8 +336,11 @@ exports.registerUser = async (req, res) => {
 // Login User
 exports.loginUser = async (req, res) => {
     try {
-        const { email, password } = req.body;
-        const user = await User.findOne({ email });
+        let { email, password } = req.body;
+        if (email) email = email.trim().toLowerCase();
+        
+        const emailRegex = new RegExp(`^${email}$`, 'i');
+        const user = await User.findOne({ email: emailRegex });
         if (!user) {
             return res.status(400).json({ msg: 'Invalid Credentials' });
         }
@@ -333,9 +386,12 @@ exports.verifyPhoneOtp = async (req, res) => {
 // Forgot Password - Send OTP
 exports.forgotPassword = async (req, res) => {
     try {
-        const { email } = req.body;
-        const user = await User.findOne({ email });
-        const vendor = await Vendor.findOne({ email });
+        let { email } = req.body;
+        if (email) email = email.trim().toLowerCase();
+        
+        const emailRegex = new RegExp(`^${email}$`, 'i');
+        const user = await User.findOne({ email: emailRegex });
+        const vendor = await Vendor.findOne({ email: emailRegex });
 
         if (!user && !vendor) {
             return res.status(404).json({ msg: 'No account found with this email' });
@@ -369,9 +425,11 @@ exports.forgotPassword = async (req, res) => {
 // Reset Password
 exports.resetPassword = async (req, res) => {
     try {
-        const { email, otp, newPassword } = req.body;
+        let { email, otp, newPassword } = req.body;
+        if (email) email = email.trim().toLowerCase();
 
-        const otpRecord = await Otp.findOne({ email }).sort({ createdAt: -1 });
+        const emailRegex = new RegExp(`^${email}$`, 'i');
+        const otpRecord = await Otp.findOne({ email: emailRegex }).sort({ createdAt: -1 });
         if (!otpRecord || otpRecord.emailOtp !== otp) {
             return res.status(400).json({ msg: 'Invalid or Expired OTP' });
         }
@@ -379,8 +437,8 @@ exports.resetPassword = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(newPassword, salt);
 
-        const user = await User.findOneAndUpdate({ email }, { password: hashedPassword });
-        const vendor = await Vendor.findOneAndUpdate({ email }, { password: hashedPassword });
+        const user = await User.findOneAndUpdate({ email: emailRegex }, { password: hashedPassword });
+        const vendor = await Vendor.findOneAndUpdate({ email: emailRegex }, { password: hashedPassword });
 
         if (!user && !vendor) {
             return res.status(404).json({ msg: 'User not found' });

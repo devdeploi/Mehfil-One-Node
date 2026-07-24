@@ -2,6 +2,7 @@ const Vendor = require('../models/Vendor');
 const User = require('../models/User');
 const Payment = require('../models/Payment');
 const Booking = require('../models/Booking');
+const HeroSetting = require('../models/HeroSetting');
 
 exports.getDashboardStats = async (req, res) => {
     try {
@@ -85,6 +86,46 @@ exports.getPaymentsHistory = async (req, res) => {
     } catch (error) {
         console.error('Error fetching payments history:', error);
         res.status(500).json({ message: 'Internal Server Error' });
+    }
+};
+
+exports.getHeroSettings = async (req, res) => {
+    try {
+        let settings = await HeroSetting.findOne().sort({ createdAt: -1 });
+        if (!settings) {
+            settings = {
+                mainArch: { url: '', title: 'The Royal Palace', subtitle: 'Featured' },
+                horizontal: { url: '', title: 'Grand Banquet' },
+                vertical: { url: '', title: 'Luxury Decor' },
+                circular: { url: '', title: 'Event Hall' }
+            };
+        }
+        res.status(200).json(settings);
+    } catch (error) {
+        console.error('Error getting hero settings:', error);
+        res.status(500).json({ message: 'Error fetching hero settings' });
+    }
+};
+
+exports.updateHeroSettings = async (req, res) => {
+    try {
+        const { mainArch, horizontal, vertical, circular } = req.body;
+        let settings = await HeroSetting.findOne().sort({ createdAt: -1 });
+        
+        if (settings) {
+            settings.mainArch = mainArch || settings.mainArch;
+            settings.horizontal = horizontal || settings.horizontal;
+            settings.vertical = vertical || settings.vertical;
+            settings.circular = circular || settings.circular;
+            await settings.save();
+        } else {
+            settings = await HeroSetting.create({ mainArch, horizontal, vertical, circular });
+        }
+        
+        res.status(200).json({ message: 'Hero settings updated successfully', settings });
+    } catch (error) {
+        console.error('Error updating hero settings:', error);
+        res.status(500).json({ message: 'Error updating hero settings' });
     }
 };
 

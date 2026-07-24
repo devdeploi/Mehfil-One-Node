@@ -59,12 +59,12 @@ exports.getBookings = async (req, res) => {
         if (req.query.all === 'true') {
             bookings = await Booking.find(query)
                 .populate('mahalId', 'mahalName mahalType coverImage')
-                .sort({ date: -1 });
+                .sort({ updatedAt: -1 });
             total = bookings.length;
         } else {
             bookings = await Booking.find(query)
                 .populate('mahalId', 'mahalName mahalType coverImage')
-                .sort({ date: -1 })
+                .sort({ updatedAt: -1 })
                 .skip(skip)
                 .limit(limit);
             total = await Booking.countDocuments(query);
@@ -177,7 +177,7 @@ exports.createBooking = async (req, res) => {
                                     </tr>
                                     <tr>
                                         <td style="padding: 8px 0; color: #666;"><strong>Advance Paid:</strong></td>
-                                        <td style="padding: 8px 0; color: #28a745;">₹${req.body.advancePaid.toLocaleString('en-IN')}</td>
+                                        <td style="padding: 8px 0; color: #28a745;">₹${(req.body.advancePaid || 0).toLocaleString('en-IN')}</td>
                                     </tr>
                                     ${req.body.transactionId ? `
                                     <tr>
@@ -241,7 +241,7 @@ exports.createBooking = async (req, res) => {
                                     </tr>
                                     <tr>
                                         <td style="padding: 8px 0; color: #666;"><strong>Advance Paid:</strong></td>
-                                        <td style="padding: 8px 0; color: #28a745; font-weight: bold;">₹${req.body.advancePaid.toLocaleString('en-IN')}</td>
+                                        <td style="padding: 8px 0; color: #28a745; font-weight: bold;">₹${(req.body.advancePaid || 0).toLocaleString('en-IN')}</td>
                                     </tr>
                                     <tr>
                                         <td style="padding: 8px 0; color: #666;"><strong>Status:</strong></td>
@@ -293,11 +293,12 @@ exports.updateBooking = async (req, res) => {
 
         const updatedBooking = await Booking.findByIdAndUpdate(id, updates, { new: true });
 
-        // Check if status or payment changed
+        // Check if status, payment, or balance changed
         const statusChanged = updates.bookingStatus && updates.bookingStatus !== booking.bookingStatus;
         const paymentChanged = updates.paymentStatus && updates.paymentStatus !== booking.paymentStatus;
+        const balanceChanged = updates.balancePaid !== undefined && updates.balancePaid !== booking.balancePaid;
 
-        if (statusChanged || paymentChanged) {
+        if (statusChanged || paymentChanged || balanceChanged) {
             try {
                 let userEmail = booking.customerEmail;
                 let userName = booking.customerName;
@@ -342,6 +343,16 @@ exports.updateBooking = async (req, res) => {
                                         <td style="padding: 8px 0; color: #666;"><strong>Booking Date:</strong></td>
                                         <td style="padding: 8px 0;">${new Date(booking.date).toLocaleDateString('en-IN')}</td>
                                     </tr>
+                                    ${balanceChanged ? `
+                                    <tr>
+                                        <td style="padding: 8px 0; color: #666;"><strong>Total Paid (Advance + Balance):</strong></td>
+                                        <td style="padding: 8px 0; color: #28a745; font-weight: bold;">₹${(Number(updatedBooking.advancePaid || 0) + Number(updatedBooking.balancePaid || 0)).toLocaleString('en-IN')}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 8px 0; color: #666;"><strong>Remaining Balance:</strong></td>
+                                        <td style="padding: 8px 0; color: #dc3545; font-weight: bold;">₹${Math.max(0, Number(updatedBooking.totalAmount || 0) - Number(updatedBooking.advancePaid || 0) - Number(updatedBooking.balancePaid || 0)).toLocaleString('en-IN')}</td>
+                                    </tr>
+                                    ` : ''}
                                 </table>
                                 ${extraText}
                             </div>

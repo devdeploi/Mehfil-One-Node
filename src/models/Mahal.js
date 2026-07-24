@@ -5,7 +5,7 @@ const mahalSchema = new mongoose.Schema({
 
     // 1. Basic Details
     mahalName: { type: String, required: true },
-    mahalType: { type: String, enum: ['Wedding Hall', 'Convention Center', 'Mini Hall'], required: true },
+    mahalType: { type: String, enum: ['Wedding Hall', 'Convention Center', 'Mini Hall', 'Banquet Hall', 'Party Hall', 'Resort', 'Hotel', 'Open Lawn', 'Conference Hall', 'Auditorium'], required: true },
     ownerName: { type: String },
     mobile: { type: String, required: true },
     altMobile: { type: String },
