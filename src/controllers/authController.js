@@ -1,4 +1,5 @@
 const Vendor = require('../models/Vendor');
+const SuperAdmin = require('../models/SuperAdmin');
 const User = require('../models/User');
 const Otp = require('../models/Otp');
 const Payment = require('../models/Payment');
@@ -170,7 +171,7 @@ exports.loginVendor = async (req, res) => {
         if (!isMatch) {
             return res.status(400).json({ msg: 'Invalid Credentials' });
         }
-        if (vendor.role === 'vendor' && vendor.status !== 'Active') {
+        if (vendor.status !== 'Active') {
             return res.status(403).json({ msg: 'Your account is currently pending administrative approval.' });
         }
 
@@ -187,6 +188,38 @@ exports.loginVendor = async (req, res) => {
                 plan: vendor.plan || 'Standard',
                 isPlanExpired: isPlanExpired,
                 planExpiryDate: vendor.planExpiryDate
+            }
+        });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
+// Login SuperAdmin
+exports.loginSuperAdmin = async (req, res) => {
+    try {
+        let { email, password } = req.body;
+        if (email) email = email.trim().toLowerCase();
+        
+        const emailRegex = new RegExp(`^${email}$`, 'i');
+        const admin = await SuperAdmin.findOne({ email: emailRegex });
+        if (!admin) {
+            return res.status(400).json({ msg: 'Invalid Credentials' });
+        }
+        const isMatch = await bcrypt.compare(password, admin.password);
+        if (!isMatch) {
+            return res.status(400).json({ msg: 'Invalid Credentials' });
+        }
+        
+        res.json({
+            msg: 'Login successful',
+            admin: {
+                id: admin._id,
+                name: admin.fullName,
+                email: admin.email,
+                phone: admin.phone,
+                role: admin.role
             }
         });
     } catch (err) {
@@ -392,8 +425,9 @@ exports.forgotPassword = async (req, res) => {
         const emailRegex = new RegExp(`^${email}$`, 'i');
         const user = await User.findOne({ email: emailRegex });
         const vendor = await Vendor.findOne({ email: emailRegex });
+        const admin = await SuperAdmin.findOne({ email: emailRegex });
 
-        if (!user && !vendor) {
+        if (!user && !vendor && !admin) {
             return res.status(404).json({ msg: 'No account found with this email' });
         }
 
@@ -439,8 +473,9 @@ exports.resetPassword = async (req, res) => {
 
         const user = await User.findOneAndUpdate({ email: emailRegex }, { password: hashedPassword });
         const vendor = await Vendor.findOneAndUpdate({ email: emailRegex }, { password: hashedPassword });
+        const admin = await SuperAdmin.findOneAndUpdate({ email: emailRegex }, { password: hashedPassword });
 
-        if (!user && !vendor) {
+        if (!user && !vendor && !admin) {
             return res.status(404).json({ msg: 'User not found' });
         }
 

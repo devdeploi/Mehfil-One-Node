@@ -5,7 +5,7 @@ const vendorSchema = new mongoose.Schema({
     email: { type: String, required: true, unique: true },
     phone: { type: String, required: true },
     password: { type: String, required: true },
-    role: { type: String, enum: ['vendor', 'superadmin'], default: 'vendor' },
+    role: { type: String, enum: ['vendor'], default: 'vendor' },
     status: { type: String, enum: ['Active', 'Inactive', 'Pending'], default: 'Active' },
     profileImage: { type: String, default: null },
     plan: { type: String, default: 'Standard' },
