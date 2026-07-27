@@ -177,9 +177,15 @@ You are receiving this email because you are a registered vendor.</p>
 // Delete vendor
 exports.deleteVendor = async (req, res) => {
     try {
+        const Mahal = require('../models/Mahal');
+        const mahalCount = await Mahal.countDocuments({ vendorId: req.params.id });
+        if (mahalCount > 0) {
+            return res.status(400).json({ msg: 'Cannot delete vendor because they have associated mahals. Please deactivate the vendor instead.' });
+        }
         await Vendor.findByIdAndDelete(req.params.id);
         res.json({ msg: 'Vendor removed' });
     } catch (err) {
+        console.error(err);
         res.status(500).json({ msg: 'Server Error' });
     }
 };

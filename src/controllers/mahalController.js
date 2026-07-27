@@ -53,7 +53,8 @@ exports.getAllMahals = async (req, res) => {
                 { planExpiryDate: { $lt: sevenDaysAgo } },
                 // Legacy vendor: no planExpiryDate but account is older than 1 year + 7 days
                 { planExpiryDate: { $exists: false }, createdAt: { $lt: oneYearAndSevenDaysAgo } },
-                { planExpiryDate: null, createdAt: { $lt: oneYearAndSevenDaysAgo } }
+                { planExpiryDate: null, createdAt: { $lt: oneYearAndSevenDaysAgo } },
+                { status: 'Inactive' }
             ]
         }).select('_id');
         const suspendedVendorIds = suspendedVendors.map(v => v._id);
