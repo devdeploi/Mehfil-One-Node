@@ -11,8 +11,8 @@ const seedAdmin = async () => {
         await mongoose.connect(process.env.MONGO_URI);
         console.log('MongoDB Connected...');
 
-        const email = 'ubaiseibrahim7@gmail.com';
-        const password = 'Ubaise@eache17';
+        const email = 'info@safprotech.com';
+        const password = 'safeer@123';
 
         // Check if exists and remove
         await SuperAdmin.findOneAndDelete({ email });
@@ -23,9 +23,9 @@ const seedAdmin = async () => {
         const hashedPassword = await bcrypt.hash(password, salt);
 
         const admin = new SuperAdmin({
-            fullName: 'Super Admin',
+            fullName: 'Anaikar Safeer',
             email,
-            phone: '9790494861',
+            phone: '9789621043',
             password: hashedPassword,
             role: 'superadmin'
         });
