@@ -109,18 +109,55 @@ exports.getHeroSettings = async (req, res) => {
 
 exports.updateHeroSettings = async (req, res) => {
     try {
-        const { mainArch, horizontal, vertical, circular } = req.body;
         let settings = await HeroSetting.findOne().sort({ createdAt: -1 });
-        
-        if (settings) {
-            settings.mainArch = mainArch || settings.mainArch;
-            settings.horizontal = horizontal || settings.horizontal;
-            settings.vertical = vertical || settings.vertical;
-            settings.circular = circular || settings.circular;
-            await settings.save();
-        } else {
-            settings = await HeroSetting.create({ mainArch, horizontal, vertical, circular });
+        if (!settings) {
+            settings = await HeroSetting.create({
+                mainArch: { url: '', title: 'The Royal Palace', subtitle: 'Featured' },
+                horizontal: { url: '', title: 'Grand Banquet' },
+                vertical: { url: '', title: 'Luxury Decor' },
+                circular: { url: '', title: 'Event Hall' }
+            });
         }
+        
+        let settingsData = {};
+        if (req.body.settingsData) {
+            settingsData = JSON.parse(req.body.settingsData);
+        } else {
+            // Fallback for requests not using FormData
+            settingsData = req.body;
+        }
+        
+        const keys = ['mainArch', 'horizontal', 'vertical', 'circular'];
+        keys.forEach(key => {
+            if (settingsData[key]) {
+                 settings[key].title = settingsData[key].title || settings[key].title;
+                 if (key === 'mainArch' && settingsData[key].subtitle !== undefined) {
+                     settings.mainArch.subtitle = settingsData[key].subtitle;
+                 }
+                 if (settingsData[key].url === '') {
+                     settings[key].url = '';
+                 } else if (settingsData[key].url && !settingsData[key].url.startsWith('NEW_FILE')) {
+                     settings[key].url = settingsData[key].url;
+                 }
+            }
+        });
+
+        if (req.files) {
+            if (req.files.mainArchImage && req.files.mainArchImage.length > 0) {
+                settings.mainArch.url = req.files.mainArchImage[0].path.replace(/\\/g, '/');
+            }
+            if (req.files.horizontalImage && req.files.horizontalImage.length > 0) {
+                settings.horizontal.url = req.files.horizontalImage[0].path.replace(/\\/g, '/');
+            }
+            if (req.files.verticalImage && req.files.verticalImage.length > 0) {
+                settings.vertical.url = req.files.verticalImage[0].path.replace(/\\/g, '/');
+            }
+            if (req.files.circularImage && req.files.circularImage.length > 0) {
+                settings.circular.url = req.files.circularImage[0].path.replace(/\\/g, '/');
+            }
+        }
+        
+        await settings.save();
         
         res.status(200).json({ message: 'Hero settings updated successfully', settings });
     } catch (error) {
