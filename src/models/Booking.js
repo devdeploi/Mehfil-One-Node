@@ -40,6 +40,7 @@ const bookingSchema = new mongoose.Schema({
         catering: { selected: { type: Boolean, default: false }, price: { type: Number, default: 0 } }
     },
     totalAmount: { type: Number },
+    gstAmount: { type: Number, default: 0 },
     createdAt: { type: Date, default: Date.now }
 });
 

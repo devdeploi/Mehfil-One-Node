@@ -355,6 +355,7 @@ exports.createMahal = async (req, res) => {
             refundPolicy: req.body.refundPolicy,
             discountMin: req.body.discountMin,
             discountMax: req.body.discountMax,
+            applyGst: req.body.applyGst === 'true',
 
             availableDays: req.body.availableDays,
             morningTimeFrom: req.body.morningTimeFrom,
@@ -499,6 +500,10 @@ exports.updateMahal = async (req, res) => {
 
 
         // Update fields
+        if (req.body.applyGst !== undefined) {
+            req.body.applyGst = req.body.applyGst === 'true';
+        }
+        
         const updateData = {
             ...req.body, // Spread textual fields
             facilities, decoration, stalls, utensils, catering,

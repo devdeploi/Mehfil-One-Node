@@ -40,6 +40,7 @@ const mahalSchema = new mongoose.Schema({
     refundPolicy: { type: String },
     discountMin: { type: Number, min: 0, max: 100 },
     discountMax: { type: Number, min: 0, max: 100 },
+    applyGst: { type: Boolean, default: false },
 
     // 5. Availability / Booking
     availableDays: { type: String, enum: ['All Days', 'Weekends', 'Custom'], default: 'All Days' },
