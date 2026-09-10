@@ -12,21 +12,24 @@ connectDB();
 
 const app = express();
 
-// Performance Optimization Middleware: Enable Gzip Compression
-app.use(compression());
-
-// Security & Caching Headers
+// 1. Single Unified CORS & Preflight Middleware (MUST be first)
 app.use((req, res, next) => {
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-    if (req.method === 'GET' && (req.path.startsWith('/uploads') || req.path.endsWith('.png') || req.path.endsWith('.jpg') || req.path.endsWith('.svg'))) {
-        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    const origin = req.headers.origin || '*';
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, POST, PUT, DELETE, PATCH, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers');
+    res.setHeader('Access-Control-Max-Age', '86400');
+    res.setHeader('Vary', 'Origin');
+
+    if (req.method === 'OPTIONS') {
+        return res.status(200).send('OK');
     }
     next();
 });
 
-// Middleware
-app.use(cors());
+// Performance & Body Parsing Middleware
+app.use(compression());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use('/uploads', express.static('uploads'));
@@ -37,37 +40,37 @@ app.get('/sitemap.xml', (req, res) => {
     res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://mehfilone.com/</loc>
+    <loc>https://mehfilone.in/</loc>
     <lastmod>2026-09-10</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://mehfilone.com/all-venues</loc>
+    <loc>https://mehfilone.in/all-venues</loc>
     <lastmod>2026-09-10</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://mehfilone.com/resources/marriage-halls</loc>
+    <loc>https://mehfilone.in/resources/marriage-halls</loc>
     <lastmod>2026-09-10</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mehfilone.com/resources/party-halls</loc>
+    <loc>https://mehfilone.in/resources/party-halls</loc>
     <lastmod>2026-09-10</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mehfilone.com/terms</loc>
+    <loc>https://mehfilone.in/terms</loc>
     <lastmod>2026-09-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://mehfilone.com/policy</loc>
+    <loc>https://mehfilone.in/policy</loc>
     <lastmod>2026-09-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
@@ -78,7 +81,7 @@ app.get('/sitemap.xml', (req, res) => {
 // Robots.txt Route
 app.get('/robots.txt', (req, res) => {
     res.header('Content-Type', 'text/plain');
-    res.send(`User-agent: *\nAllow: /\nDisallow: /9fe66b121b3e4c9cabe51b36d5bbcaed/\nDisallow: /vendor/dashboard\nSitemap: https://mehfilone.com/sitemap.xml`);
+    res.send(`User-agent: *\nAllow: /\nDisallow: /9fe66b121b3e4c9cabe51b36d5bbcaed/\nDisallow: /vendor/dashboard\nSitemap: https://mehfilone.in/sitemap.xml`);
 });
 
 // Routes

@@ -119,7 +119,7 @@ exports.updateVendorStatus = async (req, res) => {
                 message = `We regret to inform you that your vendor profile has been deactivated or declined following our internal review.${reasonBlock}<br><br><strong>Refund Notice:</strong> The registration fee has been fully refunded and will be credited to your original payment method within <strong>24 hours</strong>.`;
                 color = '#dc2626';
                 btnText = 'Contact Support';
-                btnLink = 'mailto:support@mehfilone.com';
+                btnLink = 'mailto:support@mehfilone.in';
             }
 
             if (subject) {
@@ -152,7 +152,7 @@ ${status === 'Active' ? '<div style="margin-top:15px;font-size:48px;">🎉</div>
 </div>
 <div style="background-color:#f8fafc;border-left:4px solid ${themeColor};padding:15px 20px;border-radius:4px;margin-top:30px;">
 <p style="color:#64748b;font-size:14px;line-height:1.6;margin:0;"><strong>Need assistance?</strong><br>
-Our support team is always here to help. Reach us at <a href="mailto:support@mehfilone.com" style="color:${themeColor};text-decoration:none;font-weight:600;">support@mehfilone.com</a>.</p>
+Our support team is always here to help. Reach us at <a href="mailto:support@mehfilone.in" style="color:${themeColor};text-decoration:none;font-weight:600;">support@mehfilone.in</a>.</p>
 </div>
 </td></tr>
 <tr><td style="background-color:${darkColor};padding:30px;text-align:center;">

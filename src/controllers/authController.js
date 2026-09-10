@@ -118,7 +118,7 @@ exports.registerVendor = async (req, res) => {
         await sendEmail(email, subject, '', html);
         
         // Send Notification to Superadmin
-        const adminEmail = process.env.ADMIN_EMAIL || 'admin@mehfilone.com';
+        const adminEmail = process.env.ADMIN_EMAIL || 'admin@mehfilone.in';
         const adminSubject = 'New Vendor Registration - Mehfil One';
         const adminHtml = `
             <!DOCTYPE html>
