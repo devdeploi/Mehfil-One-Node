@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 
 // Ensure directories exist
-const uploadDirs = ['uploads/vendor', 'uploads/mahal'];
+const uploadDirs = ['uploads/vendor', 'uploads/mahal', 'uploads/reviews'];
 uploadDirs.forEach(dir => {
     if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
@@ -18,6 +18,8 @@ const storage = multer.diskStorage({
             dest += 'vendor';
         } else if (req.baseUrl.includes('mahals')) {
             dest += 'mahal';
+        } else if (req.baseUrl.includes('reviews')) {
+            dest += 'reviews';
         } else {
             dest += 'others'; // Fallback
         }
@@ -35,18 +37,18 @@ const storage = multer.diskStorage({
     }
 });
 
-// File filter (Images only)
+// File filter (Images, Videos, and PDFs)
 const fileFilter = (req, file, cb) => {
-    if (file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf') {
+    if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/') || file.mimetype === 'application/pdf') {
         cb(null, true);
     } else {
-        cb(new Error('Only images and PDFs are allowed!'), false);
+        cb(new Error('Only images, videos (MP4/WebM), and PDFs are allowed!'), false);
     }
 };
 
 const upload = multer({
     storage: storage,
-    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+    limits: { fileSize: 35 * 1024 * 1024 }, // 35MB limit (supports 10MB images and short event video clips)
     fileFilter: fileFilter
 });
 

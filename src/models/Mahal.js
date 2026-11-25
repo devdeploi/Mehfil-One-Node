@@ -41,6 +41,7 @@ const mahalSchema = new mongoose.Schema({
     discountMin: { type: Number, min: 0, max: 100 },
     discountMax: { type: Number, min: 0, max: 100 },
     applyGst: { type: Boolean, default: false },
+    bestPriceGuarantee: { type: Boolean, default: true },
 
     // 5. Availability / Booking
     availableDays: { type: String, enum: ['All Days', 'Weekends', 'Custom'], default: 'All Days' },
@@ -75,11 +76,35 @@ const mahalSchema = new mongoose.Schema({
     powerSupply: { type: String },
     restRooms: { type: Number },
 
+    // 6. Corporate Amenities
+    corporateAmenities: {
+        wifi: { type: Boolean, default: false },
+        projector: { type: Boolean, default: false },
+        videoConferencing: { type: Boolean, default: false },
+        whiteboard: { type: Boolean, default: false }
+    },
+
     // 7. Images / Media
     coverImage: { type: String }, // URL path
     galleryImages: [{ type: String }], // Array of URL paths
     videoUrl: { type: String },
     brochureUrl: { type: String }, // PDF Path
+
+    // 7b. 360° Virtual Walkthrough & Floor Plan
+    virtualTour: {
+        enabled: { type: Boolean, default: false },
+        tourType: { type: String, enum: ['embed', 'panorama'], default: 'embed' },
+        embedUrl: { type: String }, // Matterport, Kuula, YouTube 360, Google Street View
+        panoramaImage: { type: String } // Uploaded equirectangular 360 photo
+    },
+    floorPlan: {
+        available: { type: Boolean, default: false },
+        image: { type: String }, // Architectural floor plan blueprint image
+        totalSqFt: { type: Number },
+        stageDimensions: { type: String },
+        diningSqFt: { type: Number },
+        ceilingHeight: { type: String }
+    },
 
     // 8. Decoration Module (Array of Objects)
     decoration: {
@@ -130,7 +155,21 @@ const mahalSchema = new mongoose.Schema({
         notes: { type: String }
     },
 
-    // 12. Terms
+    // 12. All-Inclusive Event Packages (Bundled Venue + Food + Decor + AV)
+    eventPackages: [{
+        packageName: { type: String, required: true },
+        tier: { type: String, enum: ['Silver', 'Gold', 'Platinum', 'Custom'], default: 'Gold' },
+        eventType: { type: String, default: 'Wedding & Reception' },
+        price: { type: Number, required: true },
+        originalPrice: { type: Number },
+        guestCount: { type: Number, default: 300 },
+        badge: { type: String, default: 'Most Popular' },
+        description: { type: String },
+        inclusions: [{ type: String }],
+        isActive: { type: Boolean, default: true }
+    }],
+
+    // 13. Terms
     terms: { type: String },
 
     // Metadata

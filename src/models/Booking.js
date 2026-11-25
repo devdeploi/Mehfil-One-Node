@@ -39,6 +39,13 @@ const bookingSchema = new mongoose.Schema({
         utensils: { selected: { type: Boolean, default: false }, price: { type: Number, default: 0 } },
         catering: { selected: { type: Boolean, default: false }, price: { type: Number, default: 0 } }
     },
+    packageBooked: {
+        isPackage: { type: Boolean, default: false },
+        packageName: { type: String },
+        tier: { type: String },
+        packagePrice: { type: Number },
+        inclusions: [{ type: String }]
+    },
     totalAmount: { type: Number },
     gstAmount: { type: Number, default: 0 },
     createdAt: { type: Date, default: Date.now }
